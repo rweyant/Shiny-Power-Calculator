@@ -109,8 +109,8 @@ server <- function(input,output){
     }
   })
   
-  output$powerPlot <- renderText({
-    #class(input) %>% print
+  output$powerPlot <- renderPlot({
+    names(input) %>% print
     'test.type: ' %>% paste(input$test.type) %>% print
     'type.of.calculation: ' %>% paste(input$type.of.calculation)  %>% print
     'n.groups: ' %>% paste(input$n.groups) %>% print
@@ -120,8 +120,38 @@ server <- function(input,output){
     'xaxis: ' %>% paste(input$xaxis) %>% print
     'xaxis.limits ' %>% paste(input$xaxis.limits) %>% print  
     print("\n\n\n-------")
-#     alpha <- 10^((-20:-1000)/10)
-#     n <- 10^((1:4)/1)
+    
+    if(input$test.type=='Proportions'){
+      if(input$type.of.calculation=='Power'){
+        if(input$xaxis=='Sample Size'){
+          df <- sapply(seq(to=input$xaxis.limits[1],
+                           from=input$xaxis.limits[2],
+                           length.out=20),
+                       function(n){ 
+                        sapply(as.numeric(input$alpha.groups),function(x){
+                          power.prop.test(n=n, 
+                                          p1=input$p1, 
+                                          p2=input$p2, 
+                                          sig.level=x, 
+                                          alternative='two.sided')$power})
+                      }) %>% as.data.frame
+        } else if(input$xaxis=='Type I Error'){
+          df <- sapply(seq(to=input$xaxis.limits[1],
+                           from=input$xaxis.limits[2],
+                           length.out=20),
+                       function(alpha){ 
+                         sapply(as.numeric(input$n.groups),function(x){
+                           power.prop.test(n=x, 
+                                           p1=input$p1, 
+                                           p2=input$p2, 
+                                           sig.level=alpha, 
+                                           alternative='two.sided')$power})
+                       }) %>% as.data.frame
+        }
+      }
+    }
+    df %>% dim %>% print
+    df %>% head %>% print
 #     x <- .05
 #     
 #     df <- data.frame(sapply(n,function(n1){ 
@@ -187,3 +217,17 @@ ui <- fluidPage(
 )
 
 shinyApp(ui=ui,server=server)
+
+
+
+
+#     
+#       x.var <- seq(from=input$xaxis.limits[1],to=input$xaxis.limits[2],
+#                   by = (input$xaxis.limits[2]-input$xaxis.limits[1]) / 20)
+#       if(input$xaxis != 'Type I Error'){
+#         groups <-  input$alpha.groups
+#       } else if(input$type.of.calculation=='Sample Size' & input$xaxis != 'Power'){
+#         groups <- input$power.groups
+#       }else if(input$type.of.calculation=='Power' & input$xaxis != 'Sample Size'){
+#         groups <- n.groups
+#       }
